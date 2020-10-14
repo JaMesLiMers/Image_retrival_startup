@@ -1,0 +1,12 @@
+# backbone:
+backbone:
+  # model类型: alexnet, resnet, vgg
+  model: resnet
+
+log:
+  # 是否开启 log: true, false
+  enable: true
+  # log 等级 INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  # log 文件名
+  file_name: logger.txt
