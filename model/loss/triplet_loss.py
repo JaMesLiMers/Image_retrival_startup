@@ -9,6 +9,9 @@ class TripletLoss(nn.Module):
         loss = TripletLoss()
         loss(anchor, positive, negative)
 
+    更多的文档请参考: 
+    https://pytorch.org/docs/stable/generated/torch.nn.TripletMarginLoss.html
+
     超参数:
         margin: Triplet loss margin, 默认是 1.0
         p: The norm degree for pairwise distance, 默认是 2
