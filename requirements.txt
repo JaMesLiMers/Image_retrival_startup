@@ -3,4 +3,5 @@ pandas
 torch
 torchvision
 matplotlib
+omegaconf
 hydra-core
