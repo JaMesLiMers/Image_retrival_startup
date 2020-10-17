@@ -13,5 +13,5 @@ git clone https://github.com/JaMesLiMers/Image_retrival_startup.git
 ```
 conda create -n torch python=3.8
 conda activate torch
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
