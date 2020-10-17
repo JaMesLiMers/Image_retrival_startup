@@ -3,4 +3,4 @@ pandas
 torch
 torchvision
 matplotlib
-yaml
+hydra-core
