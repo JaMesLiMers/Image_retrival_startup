@@ -5,3 +5,4 @@ torchvision
 matplotlib
 omegaconf
 hydra-core
+tqdm
