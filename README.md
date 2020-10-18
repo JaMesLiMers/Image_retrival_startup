@@ -15,3 +15,9 @@ conda create -n torch python=3.8
 conda activate torch
 pip install -r requirements.txt
 ```
+
+- Setup your PYTHONPATH first (only in linux like system):
+```
+chmod +x ./set_path.sh
+source ./set_path.sh
+```
