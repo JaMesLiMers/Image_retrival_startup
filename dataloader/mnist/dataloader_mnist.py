@@ -75,9 +75,11 @@ class MNIST(VisionDataset):
                 {
                     "img": target image,
                     "cls": target class, 
+                    "other": other information,
                 }
         """
         rdic = {}
+        other = {}
 
         img, target = self.data[index], int(self.targets[index])
 
@@ -93,6 +95,7 @@ class MNIST(VisionDataset):
 
         rdic["img"] = img
         rdic["cls"] = target
+        rdic["other"] = other
 
         return rdic
 
