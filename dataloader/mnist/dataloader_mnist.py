@@ -1,9 +1,11 @@
 import os
 import os.path
 import torch
+import random
 import numpy as np
 from PIL import Image
 from torchvision.datasets.vision import VisionDataset
+
 
 """
 The MNIST is copied from torchvition's MNIST dataset calss
@@ -24,6 +26,10 @@ class MNIST(VisionDataset):
             and returns a transformed version. E.g, ``transforms.RandomCrop``
         target_transform (callable, optional): A function/transform that takes in the
             target and transforms it.
+
+
+    Atrribute:
+        TODO: 写整个架构
     """
 
     processed_folder = './dataset/mnist/processed_data/'
@@ -52,9 +58,34 @@ class MNIST(VisionDataset):
         
         if not self._check_exists():
             raise RuntimeError('Dataset not found.' +
-                               ' Please prepare data first. (dataset should be placed in {})'.format(processed_folder))
+                               ' Please prepare data first. (dataset should be placed in {})'.format(self.processed_folder))
 
         self.data, self.targets = torch.load(os.path.join(self.processed_folder, data_file))
+
+        self.class_index = self._filt_class_idx()
+
+
+    def _filt_class_idx(self):
+        """
+        filter class, seperate them into idx
+
+        Return:
+            class_dict: 
+                {
+                    "class_1": [index_1, ....],
+                    "class_2": [index_1, ....],
+                    "class_3": [index_1, ....],
+                    "class_4": [index_1, ....]
+                }
+        """
+        cls_dic = {}
+
+        total_idx = list(range(len(self.targets)))
+
+        for i in self.class_to_idx.values():
+            cls_dic[i] = [x for x in total_idx if self.targets[x] == i]
+        
+        return cls_dic
 
 
     def _check_exists(self):
@@ -78,12 +109,41 @@ class MNIST(VisionDataset):
                     "other": other information,
                 }
         """
+        return self.get_instance(index=index)
+        
+
+    def get_instance(self, index=None, cls=None):
+        """
+        Get one instance from dataset, acccording to the specification
+
+        The default performance of function is return a random sample, 
+        If the index is specified, then return index sample, else if cls
+        is specified, then get target class sample.
+
+        Args:
+            index (int): Index num
+            cls (int):   Class num
+
+        Returns:
+            dictionary:
+                {
+                    "img": target image,
+                    "cls": target class, 
+                    "other": other information,
+                }
+        """
         rdic = {}
         other = {}
 
+        if index:
+            index = index
+        elif cls:
+            index = random.choice(self.class_index[cls])
+        else:
+            index = random.randint(0, len(self))
+            
         img, target = self.data[index], int(self.targets[index])
 
-        # doing this so that it is consistent with all other datasets
         # to return a PIL Image
         img = Image.fromarray(img.numpy(), mode='L')
 
@@ -99,23 +159,6 @@ class MNIST(VisionDataset):
 
         return rdic
 
-    def get_random_instance(self):
-        """
-        docstring
-        """
-        pass
-
-    def get_index_instance(self, index):
-        """
-        docstring
-        """
-        pass
-
-    def get_specific_instance(self, cls=None):
-        """
-        docstring
-        """
-        pass
 
     def __len__(self):
         return len(self.data)
