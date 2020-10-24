@@ -1,10 +1,12 @@
 import os
 import os.path
 import torch
+from torchvision import transforms
 import random
 import numpy as np
 from PIL import Image
 from torchvision.datasets.vision import VisionDataset
+from torch.utils.data import DataLoader
 
 
 """
@@ -29,7 +31,22 @@ class MNIST(VisionDataset):
 
 
     Atrribute:
-        TODO: 写整个架构
+        processed_folder: 处理好的数据文件夹
+        training_file: 训练集的文件名
+        test_file: 测试集的文件名
+        classes: 保存按照index编码的cls信息注释
+        train: 根据true和false进行不同的数据集加载
+        class_index: dict, 存的是根据cls来分的index列表
+
+        property:
+            class_to_idx: 返回一个对应class的注释dict
+
+        __init__: 将整个数据集load进内存
+        __getitem__: 根据index获取数据样本
+        __len__: 获取整个数据集的长度
+
+        get_instance: 获取一个数据样本的基本方法, 分别包括随机, 指定index, 指定cls三种
+
     """
 
     processed_folder = './dataset/mnist/processed_data/'
@@ -98,6 +115,8 @@ class MNIST(VisionDataset):
         """
         Defaulet use as torch dataset
 
+        Return according to index.
+
         Args:
             index (int): Index
 
@@ -135,9 +154,9 @@ class MNIST(VisionDataset):
         rdic = {}
         other = {}
 
-        if index:
+        if index is not None:
             index = index
-        elif cls:
+        elif cls is not None:
             index = random.choice(self.class_index[cls])
         else:
             index = random.randint(0, len(self))
@@ -171,4 +190,39 @@ class MNIST(VisionDataset):
 if __name__ == "__main__":
     test_dataset = MNIST()
 
-    print(test_dataset)
+    # get index 1
+    print("get index 1 for 2 times:\n")
+    for i in range(2):
+        print(test_dataset.get_instance(index=1))
+
+    # random get 10 
+    print("random get 10 :\n")
+    for i in range(10):
+        print(test_dataset.get_instance())
+    
+    # get 10 class 0
+    print("get 10 class 0:\n")
+    for i in range(10):
+        print(test_dataset.get_instance(cls=0))
+
+
+    transformer = transforms.Compose([
+                                    transforms.ToTensor(),
+                                    ])
+    transformed_dataset = MNIST(transform=transformer)
+
+    # random get 10 on transformer
+    print("random get 10 and transform:\n")
+    for i in range(10):
+        print(type(transformed_dataset.get_instance()["img"]))
+
+    # warp with dataloader
+    dataloader = DataLoader(transformed_dataset, batch_size=4,
+                        shuffle=True, num_workers=0)
+
+    # iterate all batch
+    for i_batch, sample_batched in enumerate(dataloader):
+        print(i_batch, sample_batched['img'].size(),
+                sample_batched['cls'].size())
+
+
