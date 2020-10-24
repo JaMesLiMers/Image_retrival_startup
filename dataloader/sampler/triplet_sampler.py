@@ -143,6 +143,7 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
     from torchvision import transforms
 
+    # how2use
     transformer = transforms.Compose([
                                     transforms.ToTensor(),
                                     ])
