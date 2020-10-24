@@ -142,6 +142,8 @@ if __name__ == "__main__":
     from dataloader.mnist.dataloader_mnist import MNIST
     from torch.utils.data import DataLoader
     from torchvision import transforms
+    import PIL
+    import matplotlib.pyplot as plt 
 
     # how2use
     transformer = transforms.Compose([
@@ -154,7 +156,27 @@ if __name__ == "__main__":
     dataloader = DataLoader(test_sample, batch_size=4,
                         shuffle=True, num_workers=0)
 
-    # iterate all batch
-    for i_batch, sample_batched in enumerate(dataloader):
-        print(i_batch, sample_batched["anchor_img"].size(),
-                sample_batched["anchor_cls"].size())
+    # show one batch
+    sample_batched = next(iter(dataloader))
+    print(sample_batched["anchor_img"].size(),
+            sample_batched["anchor_cls"].size())
+
+    neg_image = sample_batched["neg_img"]
+    pos_image = sample_batched["pos_img"]
+    anchor_image = sample_batched["anchor_img"]
+
+    trans = transforms.ToPILImage()
+    one_neg_img = trans(neg_image[0])
+    one_pos_img = trans(pos_image[0])
+    one_anchor_img = trans(anchor_image[0])
+
+    plt.imshow(one_neg_img)
+    plt.show()
+
+    plt.imshow(one_pos_img)
+    plt.show()
+
+    plt.imshow(one_anchor_img)
+    plt.show()
+
+    
