@@ -12,6 +12,7 @@ args = parser.parse_args()
 raw_folder = args.input_dir
 processed_folder = args.output_dir
 
+os.makedirs(processed_folder, exist_ok=True)
 
 training_file = "mnist_train.pt"
 test_file = "mnist_test.pt"
