@@ -1,8 +1,9 @@
 """
 This code was imported from the official PyTorch Torchvision GitHub repository for the purposes doing experiments
-    with fine-tuned resnet architectures:
+    with fine-tuned alex net architectures:
     https://github.com/pytorch/vision/blob/master/torchvision/models/alexnet.py
 """
+
 import torch
 import torch.nn as nn
 # from .utils import load_state_dict_from_url
