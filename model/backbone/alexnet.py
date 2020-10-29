@@ -18,21 +18,17 @@ class AlexNetTriplet(nn.Module):
                            Defaults to False.
     """
 
-    def __init__(self, embedding_dimension=256, hidden_node=4096, pretrained=False):
+    def __init__(self, embedding_dimension=256, pretrained=False):
         super(AlexNetTriplet, self).__init__()
         self.model = alexnet(pretrained=pretrained)
 
         # Output embedding (将最后一层修改到目标的dimention, TODO: 先这样之后可能还会变)
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, hidden_node),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(hidden_node, hidden_node),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_node, embedding_dimension),
-            nn.BatchNorm1d(embedding_dimension, eps=0.001, momentum=0.1, affine=True)
-        )
+        # Following the Bin's answer from: https://discuss.pytorch.org/t/how-to-perform-finetuning-in-pytorch/419/9
+        mod = list(self.model.classifier.children())
+        mod.pop()
+        mod.append(nn.Linear(4096, embedding_dimension))
+        mod.append(nn.BatchNorm1d(embedding_dimension, eps=0.001, momentum=0.1, affine=True))
+        self.model.classifier = nn.Sequential(*mod)
 
     def forward(self, images):
         """Forward pass to output the embedding vector (feature vector) after l2-normalization."""
