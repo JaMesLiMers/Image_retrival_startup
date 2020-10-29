@@ -1,6 +1,18 @@
+"""
+This code was imported from the official PyTorch Torchvision GitHub repository for the purposes doing experiments
+    with fine-tuned resnet architectures:
+    https://github.com/pytorch/vision/blob/master/torchvision/models/alexnet.py
+"""
 import torch
 import torch.nn as nn
-from .utils import load_state_dict_from_url
+# from .utils import load_state_dict_from_url
+
+
+# Replaced 'from .utils import load_state_dict_from_url' with the following:
+try:
+    from torch.hub import load_state_dict_from_url
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
 
 __all__ = ['AlexNet', 'alexnet']
@@ -50,7 +62,12 @@ class AlexNet(nn.Module):
 
 
 def alexnet(pretrained=False, progress=True, **kwargs):
-
+    r"""AlexNet model architecture from the
+    `"One weird trick..." <https://arxiv.org/abs/1404.5997>`_ paper.
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
     model = AlexNet(**kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['alexnet'],
