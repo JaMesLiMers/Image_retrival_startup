@@ -42,6 +42,87 @@ if __name__ == "__main__":
     """
     Testing
     """
-    model = AlexNetTriplet()
+    import torch
+    from model.model.triplet_model import TripletNetModel
+    from model.loss.triplet_loss import TripletLoss
 
-    print(model)
+
+    model = AlexNetTriplet()
+    model_pretrain = AlexNetTriplet(pretrained=True)
+
+    # init pos, anc, neg image.
+    pos_img = torch.randn(4, 3, 227, 227)
+    pos_img.requires_grad = True
+    anc_img = torch.randn(4, 3, 227, 227)
+    anc_img.requires_grad = True
+    neg_img = torch.randn(4, 3, 227, 227)
+    neg_img.requires_grad = True
+
+    def test_model(model, pos_img, neg_img, anc_img, gpu=False):
+
+
+        # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if gpu else 'cpu')
+
+        # print model basic infomation 
+        print(model)
+
+        # list param
+        print('Our list of parameters:', [ np[0] for np in model.named_parameters() ])
+
+        # init triplet net model.
+        triplet_model = TripletNetModel(model)
+        # test train mode
+        # triplet_model.train()
+        triplet_model.eval()
+
+        # init loss
+        loss_func = TripletLoss()
+
+        model.to(device)
+        triplet_model.to(device)
+        loss_func.to(device)
+        pos_img = pos_img.to(device)
+        neg_img = neg_img.to(device)
+        anc_img = anc_img.to(device)
+        
+
+        pos = triplet_model(pos_img)
+        neg = triplet_model(neg_img)
+        anc = triplet_model(anc_img)
+
+        # optimizer use adam
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+
+        # check have result and make sense
+        triplet_loss = loss_func.forward(
+                    anchor=anc,
+                    positive=pos,
+                    negative=neg)
+
+        # print triplet loss
+        print(triplet_loss)
+
+        # test back ward
+        # optimizer.zero_grad()
+        # triplet_loss.backward()
+        # optimizer.step()
+
+
+    """
+    Test default model
+    & 
+    Test pretrained model
+    """
+    test_model(model, pos_img, neg_img, anc_img)
+    test_model(model_pretrain, pos_img, neg_img, anc_img)
+
+    """
+    test on gpu
+    """
+    test_model(model, pos_img, neg_img, anc_img, gpu=True)
+    test_model(model_pretrain, pos_img, neg_img, anc_img, gpu=True)
+
+
+
+    
