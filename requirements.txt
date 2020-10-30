@@ -1,6 +1,5 @@
 numpy
 pandas
-torchtest
 torch
 torchvision
 matplotlib
