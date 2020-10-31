@@ -305,6 +305,7 @@ for epoch in range(start_epoch, end_epoch):
         writer.add_scalar("Loss/train", loss_value, global_step=current_batch)
         writer.add_scalar("Other/pos_dists", pos_dists, global_step=current_batch)
         writer.add_scalar("Other/neg_dists", neg_dists, global_step=current_batch)
+        writer.add_scalar("Epoch/train_loss_epoch_{}".format(epoch), loss_value, global_step=current_batch)
         writer.add_scalar("Epoch/pos_dists_epoch_{}".format(epoch), pos_dists, global_step=current_batch)
         writer.add_scalar("Epoch/neg_dists_epoch_{}".format(epoch), neg_dists, global_step=current_batch)
         writer.add_scalar("Global_AVG/pos_dists", avg.pos_dists.avg, global_step=current_batch)
