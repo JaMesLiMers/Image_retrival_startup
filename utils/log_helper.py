@@ -112,7 +112,7 @@ def print_speed(i, i_time, n, logger_name='global'):
     remaining_day = math.floor(remaining_time / 86400)
     remaining_hour = math.floor(remaining_time / 3600 - remaining_day * 24)
     remaining_min = math.floor(remaining_time / 60 - remaining_day * 1440 - remaining_hour * 60)
-    logger.info('Progress: %d / %d [%d%%], Speed: %.3f s/iter, ETA %d:%02d:%02d (D:H:M)\n' % (i, n, i/n*100, average_time, remaining_day, remaining_hour, remaining_min))
+    logger.info('\nProgress: %d / %d [%d%%], Speed: %.3f s/iter, ETA %d:%02d:%02d (D:H:M)\n' % (i, n, i/n*100, average_time, remaining_day, remaining_hour, remaining_min))
 
 
 if __name__ == "__main__":
