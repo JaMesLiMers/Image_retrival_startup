@@ -338,6 +338,9 @@ for epoch in range(start_epoch, end_epoch):
     # Save model checkpoint
     torch.save(state, os.path.join(experiment_snap_folder, 'model_{}_triplet_epoch_{}.pt').format(backbone, epoch + 1))
 
+logger.info("\nFinish training from epoch {} to epoch {}! (Total {} epoch, {} batches.)\n".format(start_epoch, end_epoch, epochs, current_batch))
+logger.info("\nExperiment folder is {} \nSnap File is in {} \nrun 'tensorboard --logdir {}  --bind_all' to see training detail~\n".format(experiment_folder, experiment_snap_folder, experiment_board_folder))
+
 
 # TODO:
 # 1. 增加模型表现的tensorboard展示
