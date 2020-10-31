@@ -2,6 +2,7 @@ numpy
 pandas
 torch
 torchvision
+tensorboard
 matplotlib
 omegaconf
 hydra-core
