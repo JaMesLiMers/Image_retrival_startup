@@ -21,3 +21,16 @@ pip install -r requirements.txt
 chmod +x ./set_path.sh
 source ./set_path.sh
 ```
+
+# Dataset prepare
+- To prepare the dataset please follow the instruction in `./dataset` folder.
+- current support datasets are:
+1. MNIST
+2. ... (comming soon!)
+
+# Model training
+- how to train your model:
+To train your model, just use:
+```
+python ./experiment/train.py
+```
