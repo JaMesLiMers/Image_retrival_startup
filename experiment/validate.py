@@ -19,7 +19,7 @@ from experiment.triplet_utils.load_model import load_model_test
 logger = init_log("global")
 
 
-def validation(log_interval, test_dataloader, model, loss, writer, device):
+def validation(epoch, log_interval, test_dataloader, model, loss, writer, device):
     """Validate on test dataset.
 
     Current validation is only for loss, pos|neg_distance.
@@ -106,9 +106,9 @@ def validation(log_interval, test_dataloader, model, loss, writer, device):
             print_speed(current_test_batch, batch_time, total_test_batch, "global")
             logger.info("\n current global average information:\n batch_time {0:5f} | triplet_loss: {1:.5f} | pos_dists: {2:.5f} | neg_dists: {3:.5f} \n".format(avg_test.time.avg, avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg))
     else:
-        writer.add_scalar("Validate/Loss/train", avg_test.triplet_loss.avg)
-        writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg)
-        writer.add_scalar("Validate/Other/neg_dists", avg_test.neg_dists.avg)
+        writer.add_scalar("Validate/Loss/train", avg_test.triplet_loss.avg, global_step=epoch)
+        writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg, global_step=epoch)
+        writer.add_scalar("Validate/Other/neg_dists", avg_test.neg_dists.avg, global_step=epoch)
 
 
 if __name__ == "__main__":
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     loss = get_loss(loss_name=loss_name)
 
     # start validte model
-    validation(log_interval, test_dataloader, model, loss, writer, device)
+    validation(0, log_interval, test_dataloader, model, loss, writer, device)
 
 
     

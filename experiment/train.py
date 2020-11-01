@@ -95,8 +95,12 @@ parser.add_argument('--no_cuda', action='store_true', default=False,
 parser.add_argument('--log_interval', type=int, default=100, 
                     help='how many samples batch to wait before logging training status')
 
+# validate model
+parser.add_argument('--validate_model', type=bool, default=True, 
+                    help='wether to validate model, (if you need fast train, choose False)')
+
 # validate interval
-parser.add_argument('--val_interval', type=int, default=3, 
+parser.add_argument('--val_interval', type=int, default=1, 
                     help='how many epoches to wait before validate once')
 
 # expriment folder name
@@ -120,6 +124,7 @@ resume_name = args.resume_name
 seed = args.seed
 no_cuda = args.no_cuda
 log_interval = args.log_interval
+validate_model = args.validate_model
 val_interval = args.val_interval
 name = args.name
 
@@ -326,8 +331,8 @@ for epoch in range(start_epoch, end_epoch):
         writer.add_scalar("Epoch_Global_AVG/neg_dists".format(epoch), avg.neg_dists.avg, global_step=epoch)
 
         # validate on each epoch
-        if epoch % val_interval == 0 and test_dataloader is not None:
-            validation(log_interval, test_dataloader, model, loss, writer, device)
+        if validate_model and epoch % val_interval == 0 and test_dataloader is not None:
+            validation(epoch, log_interval, test_dataloader, model, loss, writer, device)
 
     # Save model checkpoint
     state = {
