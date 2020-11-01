@@ -14,7 +14,7 @@ def get_train_dataloader(dataset, batch_size, output_size, num_worker, use_cuda,
 
     select the dataset according to the args, current support:
 
-    ["MNIST_triplet",]
+    ["MNIST_triplet", "MNIST"]
 
     If the dataset dont have test version, just return None for test_loader.
 
