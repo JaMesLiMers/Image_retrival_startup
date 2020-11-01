@@ -17,14 +17,14 @@ class TripletLoss(nn.Module):
         p: The norm degree for pairwise distance, 默认是 2
         reduction: loss 求出来后的降维方式, two options: "mean" & "sum"
     """
-    def __init__(self):
+    def __init__(self, margin=1.0, p=2, reduction="mean"):
         super(TripletLoss, self).__init__()
         """
         初始化超参数, 注册loss函数
         """
-        self.margin=1.0
-        self.p=2
-        self.reduction="mean"
+        self.margin=margin
+        self.p=p
+        self.reduction=reduction
         self.loss=nn.TripletMarginLoss(margin=self.margin, p=self.p, reduction=self.reduction)
 
     def forward(self, anchor, positive, negative):
