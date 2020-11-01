@@ -5,7 +5,7 @@ from utils.log_helper import init_log, add_file_handler
 
 logger = init_log("global")
 
-def get_optimizer(optimizer, model, learning_rate, momentum):
+def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
     """Select the optimizer
 
     select the optimizer according to the args, current support:
