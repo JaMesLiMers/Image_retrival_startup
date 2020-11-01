@@ -5,7 +5,7 @@ from utils.log_helper import init_log, add_file_handler
 
 logger = init_log("global")
 
-def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
+def get_optimizer(optimizer, model):
     """Select the optimizer
 
     select the optimizer according to the args, current support:
@@ -21,8 +21,8 @@ def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
         # with default args except lr/momentum
         optimizer_model = optim.SGD(
             params=model.parameters(),
-            lr=learning_rate,
-            momentum=momentum,
+            lr=1e-3,
+            momentum=0.9,
             dampening=0,
             weight_decay=2e-4,
             nesterov=False
@@ -32,7 +32,7 @@ def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
         # with default args except lr/momentum
         optimizer_model = optim.Adagrad(
             params=model.parameters(),
-            lr=learning_rate,
+            lr=1e-3,
             lr_decay=0,
             weight_decay=2e-4,
             initial_accumulator_value=0,
@@ -43,11 +43,11 @@ def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
         # with default args except lr/momentum
         optimizer_model = optim.RMSprop(
             params=model.parameters(),
-            lr=learning_rate,
+            lr=1e-3,
             alpha=0.99,
             eps=1e-08,
             weight_decay=2e-4,
-            momentum=momentum,
+            momentum=0,
             centered=False
         )
 
@@ -55,7 +55,7 @@ def get_optimizer(optimizer, model, learning_rate=1e-3, momentum=0.5):
         # with default args except lr/momentum
         optimizer_model = optim.Adam(
             params=model.parameters(),
-            lr=learning_rate,
+            lr=1e-3,
             betas=(0.9, 0.999),
             eps=1e-08,
             weight_decay=2e-4,
