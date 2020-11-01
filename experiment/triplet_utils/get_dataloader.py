@@ -14,7 +14,7 @@ def get_train_dataloader(dataset, batch_size, output_size, num_worker, use_cuda,
 
     select the dataset according to the args, current support:
 
-    ["MNIST",]
+    ["MNIST_triplet",]
 
     If the dataset dont have test version, just return None for test_loader.
 
@@ -25,7 +25,7 @@ def get_train_dataloader(dataset, batch_size, output_size, num_worker, use_cuda,
         num_worker: multiprocess load dataset
     """
 
-    if dataset == "MNIST":
+    if dataset == "MNIST_triplet":
         transform=transforms.Compose(pre_process_transform + 
         [
                 transforms.Grayscale(3),
