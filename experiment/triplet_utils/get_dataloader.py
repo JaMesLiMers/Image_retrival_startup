@@ -45,6 +45,25 @@ def get_train_dataloader(dataset, batch_size, output_size, num_worker, use_cuda,
         else:
             train_loader = DataLoader(train_triplet_dataset, batch_size=batch_size, num_workers=num_worker)
             test_loader = DataLoader(test_triplet_dataset, batch_size=batch_size, num_workers=num_worker)
+
+    elif dataset == "MNIST":
+        transform=transforms.Compose(pre_process_transform + 
+        [
+                transforms.Grayscale(3),
+                transforms.Resize(output_size),
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,)),
+        ])
+        train_dataset = MNIST(transform=transform)
+        test_dataset = MNIST(train=False, transform=transform)
+
+        if use_cuda:
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_worker, pin_memory=True)
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_worker, pin_memory=True)
+        else:
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_worker)
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_worker)
+
     else:
         raise NotImplementedError("Please specific a valid dataset name")
 
