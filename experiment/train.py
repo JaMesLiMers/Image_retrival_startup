@@ -1,30 +1,30 @@
 import os
 import torch
+import time
+import logging
 import argparse
-import numpy as np
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
+# get method & model validation
 from experiment.validate import validation
-
-import time
-import logging
-from utils.average_meter_helper import AverageMeter
-from utils.log_helper import init_log, add_file_handler, print_speed
-
-from model.loss.triplet_loss import TripletLoss
 from model.model.triplet_model import TripletNetModel
+from experiment.triplet_utils.get_loss import get_loss
 from experiment.triplet_utils.get_backbone import get_backbone
 from experiment.triplet_utils.get_optimizer import get_optimizer
 from experiment.triplet_utils.get_dataloader import get_train_dataloader
+
+# utility
+from utils.average_meter_helper import AverageMeter
+from utils.log_helper import init_log, add_file_handler, print_speed
 
 
 parser = argparse.ArgumentParser(description='Train triplet network')
 
 # Dataset 
 # TODO: Add more support
-parser.add_argument('--dataset', type=str, default="MNIST",
-                    choices=["MNIST"],
+parser.add_argument('--dataset', type=str, default="MNIST_triplet",
+                    choices=["MNIST_triplet"],
                     help='Which dataset to use for training.')
 
 # Batch size
@@ -55,9 +55,9 @@ parser.add_argument('--image_size', default=224, type=int,
                     )
 
 # Loss setting
-# margin of triplet loss
-parser.add_argument('--margin', type=float, default=0.2, 
-                    help='margin for triplet loss (default: 0.2)')
+parser.add_argument('--loss_name', type=str, default="triplet", 
+                    choices=["triplet",],
+                    help='used loss name')
 
 # Training argument
 
@@ -74,21 +74,12 @@ parser.add_argument('--pretrained', default=False, type=bool,
 # optimizer arch
 parser.add_argument('--optimizer', type=str, default="adam", choices=["sgd", "adagrad", "rmsprop", "adam"],
                     help="Required optimizer for training the model: ('sgd','adagrad','rmsprop','adam'), (default: 'adam')")
-                    
-# learning rate
-parser.add_argument('--lr', type=float, default=0.001,
-                    help='learning rate (default: 0.001)')
-
-# momentem 
-parser.add_argument('--momentum', type=float, default=0.5,
-                    help='SGD momentum (default: 0.5)')
 
 # Other
 
 # Resume pretrain or not
 parser.add_argument('--resume_name', default='', type=str,
                     help='file name of latest checkpoint, placed in experiment folder (default: none)')
-
 
 # Global setting
 
@@ -112,6 +103,7 @@ parser.add_argument('--val_interval', type=int, default=3,
 parser.add_argument('--name', default='TripletNet', type=str,
                     help='name of experiment')
 
+
 args = parser.parse_args()
 
 dataset = args.dataset
@@ -120,20 +112,16 @@ num_workers = args.num_workers
 backbone = args.backbone
 embedding_dim = args.embedding_dim
 image_size = args.image_size
-margin = args.margin
+loss_name = args.loss_name
 epochs = args.epochs
 pretrained = args.pretrained
 optimizer = args.optimizer
-lr = args.lr
-momentum = args.momentum
 resume_name = args.resume_name
 seed = args.seed
 no_cuda = args.no_cuda
 log_interval = args.log_interval
 val_interval = args.val_interval
 name = args.name
-
-
 
 def set_model_gpu_mode(model, cuda):
     """decide wether train on multi GPU
@@ -162,11 +150,9 @@ def set_model_gpu_mode(model, cuda):
 
     return model, flag_train_multi_gpu
 
-
-
 """
-Decide wether to use cuda, set random seed and init the logger & average meter,
-init experiment folder.
+Decide wether to use cuda, set random seed and init the logger,
+init experiment folder, tensorboard writer.
 """
 
 # set cuda
@@ -194,9 +180,9 @@ writer = SummaryWriter(experiment_board_folder)
 logger = init_log("global")
 add_file_handler("global", os.path.join(experiment_folder, 'train.log'), level=logging.INFO)
 
-# init avg meter
-# avg.update(time=1.1, accuracy=.99)
-avg = AverageMeter()
+"""
+Load dataset, model, optimizer, loss, load into gpu.
+"""
 
 # get dataset 
 dataset_pre_processing = []
@@ -219,12 +205,14 @@ model, flag_train_multi_gpu = set_model_gpu_mode(model, cuda)
 
 # Set optimizer
 optimizer_model = get_optimizer(optimizer=optimizer,
-                                model=model,
-                                learning_rate=lr,
-                                momentum=momentum)
+                                model=model)
 
 # Set loss function
-loss = TripletLoss()
+loss = get_loss(loss_name=loss_name)
+
+"""
+Resume model, optimizer, epoch from pretrained snap.
+"""
 
 # Resume from a model checkpoint
 start_epoch = 0
@@ -248,6 +236,10 @@ if resume_name:
 else:
     logger.warning("\nWARNING: No checkpoint found at {}!\nTraining from scratch.\n".format(resume_path))
 
+"""
+Start training
+"""
+
 # Start Training loop
 end_epoch = start_epoch + epochs
 logger.info("\nTraining using triplet loss starting for {} epochs, current epoch: {}, target epoch: {};\n".format(epochs, start_epoch, end_epoch))
@@ -258,7 +250,12 @@ current_batch = 0
 batch_time = 0
 
 for epoch in range(start_epoch, end_epoch):
-    logger.info("\n------------------------- Start Training {} Epoch -------------------------\n".format(epoch))
+    # init avg meter
+    # avg.update(time=1.1, accuracy=.99)
+    avg = AverageMeter()
+
+    # start training epoch
+    logger.info("\n------------------------- Start Training {} Epoch -------------------------\n".format(epoch + 1))
     for batch_idx, batch_sample in enumerate(train_dataloader):
         # Skip last iteration to avoid the problem of having different number of tensors while calculating
         # averages (sizes of tensors must be the same for pairwise distance calculation)
@@ -281,12 +278,11 @@ for epoch in range(start_epoch, end_epoch):
         neg_cls = batch_sample['neg_cls']
 
         # move to gpu if use cuda
-        if cuda:
-            anc_imgs = anc_imgs.to(device)
-            pos_imgs = pos_imgs.to(device)
-            neg_imgs = neg_imgs.to(device)
-            pos_cls = pos_cls.to(device)
-            neg_cls = neg_cls.to(device)
+        anc_imgs = anc_imgs.to(device)
+        pos_imgs = pos_imgs.to(device)
+        neg_imgs = neg_imgs.to(device)
+        pos_cls = pos_cls.to(device)
+        neg_cls = neg_cls.to(device)
 
         # forward
         output = model.forward_triplet(anc_imgs, pos_imgs, neg_imgs)
@@ -311,22 +307,27 @@ for epoch in range(start_epoch, end_epoch):
         batch_time = time.time() - batch_start_time
 
         avg.update(time=batch_time, triplet_loss=loss_value, pos_dists=pos_dists, neg_dists=neg_dists)
-        writer.add_scalar("Loss/train", loss_value, global_step=current_batch)
-        writer.add_scalar("Other/pos_dists", pos_dists, global_step=current_batch)
-        writer.add_scalar("Other/neg_dists", neg_dists, global_step=current_batch)
-        writer.add_scalar("Epoch/train_loss_epoch_{}".format(epoch), loss_value, global_step=current_batch)
-        writer.add_scalar("Epoch/pos_dists_epoch_{}".format(epoch), pos_dists, global_step=current_batch)
-        writer.add_scalar("Epoch/neg_dists_epoch_{}".format(epoch), neg_dists, global_step=current_batch)
-        writer.add_scalar("Global_AVG/pos_dists", avg.pos_dists.avg, global_step=current_batch)
-        writer.add_scalar("Global_AVG/neg_dists", avg.pos_dists.avg, global_step=current_batch)
+        writer.add_scalar("Loss/train_loss", loss_value, global_step=current_batch)
+        writer.add_scalar("Distance/pos_dists", pos_dists, global_step=current_batch)
+        writer.add_scalar("Distance/neg_dists", neg_dists, global_step=current_batch)
+        writer.add_scalar("Global_AVG/loss_epoch_{}".format(epoch), avg.triplet_loss.avg, global_step=current_batch)
+        writer.add_scalar("Global_AVG/pos_dists_epoch_{}".format(epoch), avg.pos_dists.avg, global_step=current_batch)
+        writer.add_scalar("Global_AVG/neg_dists_epoch_{}".format(epoch), avg.neg_dists.avg, global_step=current_batch)
 
         # log to logger
         if current_batch % log_interval == 0:
             print_speed(current_batch, batch_time, total_batch, "global")
             logger.info("\n current batch information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.val, avg.triplet_loss.val, avg.pos_dists.val, avg.neg_dists.val))
-            # logger.info("\n current global average information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.avg, avg.triplet_loss.avg, avg.pos_dists.avg, avg.neg_dists.avg))
+            logger.info("\n current global average information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.avg, avg.triplet_loss.avg, avg.pos_dists.avg, avg.neg_dists.avg))
     else:
-        validation(epoch, val_interval, test_dataloader, model, loss, writer, cuda, device)
+        # add epoch avg
+        writer.add_scalar("Epoch_Global_AVG/loss".format(epoch), avg.triplet_loss.avg, global_step=current_batch)
+        writer.add_scalar("Epoch_Global_AVG/pos_dists".format(epoch), avg.pos_dists.avg, global_step=current_batch)
+        writer.add_scalar("Epoch_Global_AVG/neg_dists".format(epoch), avg.neg_dists.avg, global_step=current_batch)
+
+        # validate on each epoch
+        if epoch % val_interval == 0 and test_dataloader is not None:
+            validation(log_interval, test_dataloader, model, loss, writer, device)
 
     # Save model checkpoint
     state = {
