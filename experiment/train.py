@@ -321,9 +321,9 @@ for epoch in range(start_epoch, end_epoch):
             logger.info("\n current global average information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.avg, avg.triplet_loss.avg, avg.pos_dists.avg, avg.neg_dists.avg))
     else:
         # add epoch avg
-        writer.add_scalar("Epoch_Global_AVG/loss".format(epoch), avg.triplet_loss.avg, global_step=current_batch)
-        writer.add_scalar("Epoch_Global_AVG/pos_dists".format(epoch), avg.pos_dists.avg, global_step=current_batch)
-        writer.add_scalar("Epoch_Global_AVG/neg_dists".format(epoch), avg.neg_dists.avg, global_step=current_batch)
+        writer.add_scalar("Epoch_Global_AVG/loss".format(epoch), avg.triplet_loss.avg, global_step=epoch)
+        writer.add_scalar("Epoch_Global_AVG/pos_dists".format(epoch), avg.pos_dists.avg, global_step=epoch)
+        writer.add_scalar("Epoch_Global_AVG/neg_dists".format(epoch), avg.neg_dists.avg, global_step=epoch)
 
         # validate on each epoch
         if epoch % val_interval == 0 and test_dataloader is not None:
