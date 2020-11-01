@@ -3,12 +3,9 @@ import torch
 import argparse
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from dataloader.sampler.triplet_sampler import TripletSampler
+
+from experiment.validate import validation
 
 import time
 import logging
@@ -107,6 +104,10 @@ parser.add_argument('--no_cuda', action='store_true', default=False,
 parser.add_argument('--log_interval', type=int, default=100, 
                     help='how many samples batch to wait before logging training status')
 
+# validate interval
+parser.add_argument('--val_interval', type=int, default=3, 
+                    help='how many epoches to wait before validate once')
+
 # expriment folder name
 parser.add_argument('--name', default='TripletNet', type=str,
                     help='name of experiment')
@@ -129,7 +130,9 @@ resume_name = args.resume_name
 seed = args.seed
 no_cuda = args.no_cuda
 log_interval = args.log_interval
+val_interval = args.val_interval
 name = args.name
+
 
 
 def set_model_gpu_mode(model, cuda):
@@ -179,7 +182,7 @@ if cuda:
 curernt_file_path = os.path.dirname(os.path.abspath(__file__))
 experiment_folder = os.path.join(curernt_file_path, name)
 experiment_snap_folder = os.path.join(experiment_folder, "snap")
-experiment_board_folder = os.path.join(experiment_folder, "board")
+experiment_board_folder = os.path.join(experiment_folder, "board_train")
 os.makedirs(experiment_folder, exist_ok=True)
 os.makedirs(experiment_snap_folder, exist_ok=True)
 os.makedirs(experiment_board_folder, exist_ok=True)
@@ -189,7 +192,7 @@ writer = SummaryWriter(experiment_board_folder)
 
 # get log
 logger = init_log("global")
-add_file_handler("global", os.path.join(experiment_folder, 'test.log'), level=logging.INFO)
+add_file_handler("global", os.path.join(experiment_folder, 'train.log'), level=logging.INFO)
 
 # init avg meter
 # avg.update(time=1.1, accuracy=.99)
@@ -255,11 +258,17 @@ current_batch = 0
 batch_time = 0
 
 for epoch in range(start_epoch, end_epoch):
+    logger.info("\n------------------------- Start Training {} Epoch -------------------------\n".format(epoch))
     for batch_idx, batch_sample in enumerate(train_dataloader):
         # Skip last iteration to avoid the problem of having different number of tensors while calculating
         # averages (sizes of tensors must be the same for pairwise distance calculation)
         if batch_idx + 1 == len(train_dataloader):
             continue
+
+        # switch to train mode
+        for param in model.parameters():
+            param.requires_grad = True
+        model.train()
 
         batch_start_time = time.time()
 
@@ -317,8 +326,7 @@ for epoch in range(start_epoch, end_epoch):
             logger.info("\n current batch information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.val, avg.triplet_loss.val, avg.pos_dists.val, avg.neg_dists.val))
             # logger.info("\n current global average information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg.time.avg, avg.triplet_loss.avg, avg.pos_dists.avg, avg.neg_dists.avg))
     else:
-        # validate model on every epoch?
-        pass
+        validation(epoch, val_interval, test_dataloader, model, loss, writer, cuda, device)
 
     # Save model checkpoint
     state = {
