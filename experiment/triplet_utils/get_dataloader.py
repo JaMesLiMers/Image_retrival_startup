@@ -16,6 +16,8 @@ def get_train_dataloader(dataset, batch_size, output_size, num_worker, use_cuda,
 
     ["MNIST",]
 
+    If the dataset dont have test version, just return None for test_loader.
+
     Args:
         dataset: specific dataset
         batch_size: size of one batch that dataset generate
