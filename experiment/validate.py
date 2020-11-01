@@ -1,191 +1,114 @@
 import os
-
-
-import random
-import torchvision
-import torch
-import torch.nn as nn
-from utils.average_meter_helper import AverageMeter
-
-from torch.utils.tensorboard import SummaryWriter
-
-
 import time
+import torch
 import logging
+from torch.utils.tensorboard import SummaryWriter
 from utils.average_meter_helper import AverageMeter
 from utils.log_helper import init_log, add_file_handler, print_speed
 
-from model.loss.triplet_loss import TripletLoss
-from model.model.triplet_model import TripletNetModel
+# get method
+from experiment.triplet_utils.get_loss import get_loss
 from experiment.triplet_utils.get_backbone import get_backbone
 from experiment.triplet_utils.get_optimizer import get_optimizer
 from experiment.triplet_utils.get_dataloader import get_train_dataloader
 
+# load model (more eazy way to get model.)
+from experiment.triplet_utils.load_model import load_model_test
 
+# init logger
 logger = init_log("global")
 
 
-def set_model_gpu_mode(model, cuda):
-    """decide wether use GPU of CPU to run model
-    
+def validation(log_interval, test_dataloader, model, loss, writer, device):
+    """Validate on test dataset.
+
+    Current validation is only for loss, pos|neg_distance.
+    In future, we will add more validation like MAP5|10|50|100. 
+    (maybe in another file.)
+
     Args:
-        model: input model, is a nn.Moudle
-        cuda: bool, wether use cuda.
+        log_interval:
+            How many time will the logger log once.
+        test_dataloader:
+            It should not be none! A Triplet dataloader to validate data.
+        model:
+            The model that used to test on dataset.
+        loss: 
+            Loss metric.
+        writer:
+            Tensorboard writer
+        device: 
+            Device that model compute on
+    
     """
-    flag_train_gpu = torch.cuda.is_available() & cuda
-
-    if flag_train_gpu and torch.cuda.device_count() == 1:
-        model.cuda()
-        logger.info('\nRunning model with single-gpu .\n')
-    else:
-        logger.info('\nRunning model with CPU.\n')
-
-    return model
-
-
-def load_model(backbone, pretrained, embedding_dim, experiment_snap_folder, resume_name, cuda):
-    # Instantiate model
-    model = get_backbone(model_architecture=backbone, 
-                        pretrained=pretrained, 
-                        embedding_dimension=embedding_dim)
-
-    model = TripletNetModel(model)
-
-    # Load model to GPU or multiple GPUs if available
-    model = set_model_gpu_mode(model, cuda)
-
-    # Resume from a model checkpoint
-    start_epoch = 0
-    resume_path = os.path.join(experiment_snap_folder, resume_name)
-    if resume_name:
-        if os.path.isfile(resume_path):
-            logger.info("\nLoading checkpoint {} in {} ...\n".format(resume_name, experiment_folder))
-
-        checkpoint = torch.load(resume_path)
-        start_epoch = checkpoint['epoch']
-
-        # In order to load state dict for optimizers correctly, model has to be loaded to gpu first
-        model.load_state_dict(checkpoint['model_state_dict'])
-
-        logger.info("\nCheckpoint loaded: From checkpoint epoch = {}\n".format(start_epoch))
-    else:
-        logger.warning("\nWARNING: No checkpoint found at {}!\nInitialize from scratch.\n".format(resume_path))
-
-    return model
-
-
-
-def validation(epoch, val_interval, log_interval, test_dataloader, model, loss, writer, cuda, device):
     logger.info("\n------------------------- Start validation -------------------------\n")
+    # epoch average meter
     avg_test = AverageMeter()
-    # validate model on every epoch if have test_dataloader.
-    if test_dataloader is not None and epoch % val_interval == 0:
-        # get test batch count
-        current_test_batch = 0
-        total_test_batch = len(test_dataloader)
 
-        # best img pairs & worst img pairs
-        # contains [anchor_imgs, pos_imgs, neg_imgs, loss_performance]
-        best_img_triplets = []
-        worst_img_triplets = []
-        random_img_triplets = []
-        random_sample_idx = random.randrange(0, len(test_dataloader)-1)
+    # get test batch count
+    current_test_batch = 0
+    total_test_batch = len(test_dataloader)
 
-        for batch_idx, batch_sample in enumerate(test_dataloader):
-            # Skip last iteration to avoid the problem of having different number of tensors while calculating
-            # averages (sizes of tensors must be the same for pairwise distance calculation)
-            if batch_idx + 1 == len(test_dataloader):
-                continue
+    # check dataloader is not None
+    assert test_dataloader is not None, "test_dataloader should not be None."
 
-            # switch to evaluation mode.
-            for param in model.parameters():
-                param.requires_grad = False
-            model.eval()
+    for batch_idx, batch_sample in enumerate(test_dataloader):
+        # Skip last iteration to avoid the problem of having different number of tensors while calculating
+        # averages (sizes of tensors must be the same for pairwise distance calculation)
+        if batch_idx + 1 == len(test_dataloader):
+            continue
+
+        # switch to evaluation mode.
+        for param in model.parameters():
+            param.requires_grad = False
+        model.eval()
 
 
-            # start time counting
-            batch_start_time_test = time.time()
+        # start time counting
+        batch_start_time_test = time.time()
 
-            # Forward pass - compute embeddings
-            anc_imgs = batch_sample['anchor_img']
-            pos_imgs = batch_sample['pos_img']
-            neg_imgs = batch_sample['neg_img']
+        # Forward pass - compute embeddings
+        anc_imgs = batch_sample['anchor_img']
+        pos_imgs = batch_sample['pos_img']
+        neg_imgs = batch_sample['neg_img']
 
-            pos_cls = batch_sample['pos_cls']
-            neg_cls = batch_sample['neg_cls']
+        pos_cls = batch_sample['pos_cls']
+        neg_cls = batch_sample['neg_cls']
 
-            # move to gpu if use cuda
-            if cuda:
-                anc_imgs = anc_imgs.to(device)
-                pos_imgs = pos_imgs.to(device)
-                neg_imgs = neg_imgs.to(device)
-                pos_cls = pos_cls.to(device)
-                neg_cls = neg_cls.to(device)
+        # move to device
+        anc_imgs = anc_imgs.to(device)
+        pos_imgs = pos_imgs.to(device)
+        neg_imgs = neg_imgs.to(device)
+        pos_cls = pos_cls.to(device)
+        neg_cls = neg_cls.to(device)
 
-            # forward
-            output = model.forward_triplet(anc_imgs, pos_imgs, neg_imgs)
+        # forward
+        output = model.forward_triplet(anc_imgs, pos_imgs, neg_imgs)
 
-            # get output 
-            anc_emb = output['anchor_map']
-            pos_emb = output['pos_map']
-            neg_emb = output['neg_map']
+        # get output 
+        anc_emb = output['anchor_map']
+        pos_emb = output['pos_map']
+        neg_emb = output['neg_map']
 
-            pos_dists = torch.mean(output['dist_pos'])
-            neg_dists = torch.mean(output['dist_neg'])
+        pos_dists = torch.mean(output['dist_pos'])
+        neg_dists = torch.mean(output['dist_neg'])
 
-            # loss compute
-            loss_value = loss(anc_emb, pos_emb, neg_emb)
+        # loss compute
+        loss_value = loss(anc_emb, pos_emb, neg_emb)
 
-            # batch time & batch count
-            current_test_batch += 1
-            batch_time = time.time() - batch_start_time_test
+        # batch time & batch count
+        current_test_batch += 1
+        batch_time = time.time() - batch_start_time_test
 
-            # find best and worst result
-            if len(best_img_triplets) == 0:
-                best_img_triplets = [anc_imgs, pos_imgs, neg_imgs, loss_value]
-                worst_img_triplets = [anc_imgs, pos_imgs, neg_imgs, loss_value]
-            else:
-                if best_img_triplets[3] > loss_value:
-                    best_img_triplets = [anc_imgs, pos_imgs, neg_imgs, loss_value]
-                if worst_img_triplets[3] < loss_value:
-                    worst_img_triplets = [anc_imgs, pos_imgs, neg_imgs, loss_value]
-                if batch_idx == random_sample_idx:
-                    random_img_triplets = [anc_imgs, pos_imgs, neg_imgs, loss_value]
-
-            # update avg
-            avg_test.update(time=batch_time, triplet_loss=loss_value, pos_dists=pos_dists, neg_dists=neg_dists)
-            if current_test_batch % log_interval == 0:            
-                print_speed(current_test_batch, batch_time, total_test_batch, "global")
-                logger.info("\n current global average information:\n epoch: {0} | batch_time {1:5f} | triplet_loss: {2:.5f} | pos_dists: {3:.5f} | neg_dists: {4:.5f} \n".format(epoch + 1, avg_test.time.avg, avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg))
-
-        else:
-            writer.add_scalar("Validate/Loss/train", avg_test.triplet_loss.avg, global_step=epoch)
-            writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg, global_step=epoch)
-            writer.add_scalar("Validate/Other/neg_dists", avg_test.neg_dists.avg, global_step=epoch)
-            if len(best_img_triplets) != 0:
-                best_grid_anc = torchvision.utils.make_grid(best_img_triplets[0])
-                best_grid_pos = torchvision.utils.make_grid(best_img_triplets[1])
-                best_grid_neg = torchvision.utils.make_grid(best_img_triplets[2])
-
-                worst_grid_anc = torchvision.utils.make_grid(worst_img_triplets[0])
-                worst_grid_pos = torchvision.utils.make_grid(worst_img_triplets[1])
-                worst_grid_neg = torchvision.utils.make_grid(worst_img_triplets[2])
-
-                random_grid_anc = torchvision.utils.make_grid(random_img_triplets[0])
-                random_grid_pos = torchvision.utils.make_grid(random_img_triplets[1])
-                random_grid_neg = torchvision.utils.make_grid(random_img_triplets[2])
-
-                writer.add_image("Validate/Other/best_case/anchor_img", best_grid_anc, global_step=epoch)
-                writer.add_image("Validate/Other/best_case/pos_img", best_grid_pos, global_step=epoch)
-                writer.add_image("Validate/Other/best_case/neg_img", best_grid_neg, global_step=epoch)
-
-                writer.add_image("Validate/Other/worst_case/anchor_img", worst_grid_anc, global_step=epoch)
-                writer.add_image("Validate/Other/worst_case/pos_img", worst_grid_pos, global_step=epoch)
-                writer.add_image("Validate/Other/worst_case/neg_img", worst_grid_neg, global_step=epoch)
-
-                writer.add_image("Validate/Other/random_case/anchor_img", random_grid_anc, global_step=epoch)
-                writer.add_image("Validate/Other/random_case/pos_img", random_grid_pos, global_step=epoch)
-                writer.add_image("Validate/Other/random_case/neg_img", random_grid_neg, global_step=epoch)
+        # update avg
+        avg_test.update(time=batch_time, triplet_loss=loss_value, pos_dists=pos_dists, neg_dists=neg_dists)
+        if current_test_batch % log_interval == 0:            
+            print_speed(current_test_batch, batch_time, total_test_batch, "global")
+            logger.info("\n current global average information:\n batch_time {0:5f} | triplet_loss: {1:.5f} | pos_dists: {2:.5f} | neg_dists: {3:.5f} \n".format(avg_test.time.avg, avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg))
+    else:
+        writer.add_scalar("Validate/Loss/train", avg_test.triplet_loss.avg)
+        writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg)
+        writer.add_scalar("Validate/Other/neg_dists", avg_test.neg_dists.avg)
 
 
 if __name__ == "__main__":
@@ -195,8 +118,8 @@ if __name__ == "__main__":
 
     # Dataset 
     # TODO: Add more support
-    parser.add_argument('--dataset', type=str, default="MNIST",
-                        choices=["MNIST"],
+    parser.add_argument('--dataset', type=str, default="MNIST_triplet",
+                        choices=["MNIST_triplet"],
                         help='Which dataset to use for testing.')
 
     # Batch size
@@ -227,9 +150,9 @@ if __name__ == "__main__":
                         )
 
     # Loss setting
-    # margin of triplet loss
-    parser.add_argument('--margin', type=float, default=0.2, 
-                        help='margin for triplet loss (default: 0.2)')
+    parser.add_argument('--loss_name', type=str, default="triplet", 
+                    choices=["triplet",],
+                    help='used loss name')
 
     # Other
 
@@ -264,6 +187,7 @@ if __name__ == "__main__":
     embedding_dim = args.embedding_dim
     image_size = args.image_size
     resume_name = args.resume_name
+    loss_name = args.loss_name
     seed = args.seed
     no_cuda = args.no_cuda
     log_interval = args.log_interval
@@ -308,11 +232,14 @@ if __name__ == "__main__":
                                                             use_cuda=cuda, 
                                                             pre_process_transform=dataset_pre_processing)
 
-    model = load_model(backbone, False, embedding_dim, experiment_snap_folder, resume_name, cuda)
+    # load model
+    model, _ = load_model_test(backbone, False, embedding_dim, experiment_snap_folder, resume_name, cuda)
 
-    loss = TripletLoss()
+    # get evaluation loss
+    loss = get_loss(loss_name=loss_name)
 
-    validation(1, 1, log_interval, test_dataloader, model, loss, writer, cuda, device)
+    # start validte model
+    validation(log_interval, test_dataloader, model, loss, writer, device)
 
 
     
