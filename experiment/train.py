@@ -261,8 +261,8 @@ if __name__ == "__main__":
                 val_triplet_loss, val_pos_dists, val_neg_dists = validation(epoch, log_interval, test_dataloader, model, loss, writer, device)
 
                 writer.add_scalars("Contrast/Loss/train", {"Train":avg.triplet_loss.avg, "Validate": val_triplet_loss}, global_step=epoch)
-                writer.add_scalars("Contrast/Other/train_pos_dists", {"Train": avg.pos_dists.avg, "Validate": val_triplet_loss}, global_step=epoch)
-                writer.add_scalars("Contrast/Other/train_neg_dists", {"Train": avg.neg_dists.avg, "Validate": val_triplet_loss}, global_step=epoch)
+                writer.add_scalars("Contrast/Other/train_pos_dists", {"Train": avg.pos_dists.avg, "Validate": val_pos_dists}, global_step=epoch)
+                writer.add_scalars("Contrast/Other/train_neg_dists", {"Train": avg.neg_dists.avg, "Validate": val_neg_dists}, global_step=epoch)
 
         # Save model checkpoint
         state = {
