@@ -3,6 +3,10 @@ import time
 import torch
 import logging
 from torch.utils.tensorboard import SummaryWriter
+
+# utility
+from omegaconf import OmegaConf
+from utils.loadConfig import load_cfg
 from utils.average_meter_helper import AverageMeter
 from utils.log_helper import init_log, add_file_handler, print_speed
 
@@ -39,6 +43,10 @@ def validation(epoch, log_interval, test_dataloader, model, loss, writer, device
             Tensorboard writer
         device: 
             Device that model compute on
+
+    Return:
+        epoch avrage value:
+            triplet_loss, pos_dists, neg_dists
     
     """
     logger.info("\n------------------------- Start validation -------------------------\n")
@@ -110,107 +118,58 @@ def validation(epoch, log_interval, test_dataloader, model, loss, writer, device
         writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg, global_step=epoch)
         writer.add_scalar("Validate/Other/neg_dists", avg_test.neg_dists.avg, global_step=epoch)
 
+    return avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg
+
 
 if __name__ == "__main__":
+    """
+    单独Validate模型使用, 可以直接进行validate
+    """
     import argparse
 
     parser = argparse.ArgumentParser(description='Validate triplet network')
 
-    # Dataset 
-    # TODO: Add more support
-    parser.add_argument('--dataset', type=str, default="MNIST_triplet",
-                        choices=["MNIST_triplet"],
-                        help='Which dataset to use for testing.')
-
-    # Batch size
-    parser.add_argument('--batch_size', type=int, default=32,
-                        help='input batch size for testing (default: 64)')
-
-    # num_workers
-    parser.add_argument('--num_workers', default=1, type=int,
-                        help="Number of workers for data loaders (default: 1)"
-                        )
-
-    # Model Backbone
-    # TODO: Add more support
-    parser.add_argument('--backbone', type=str, default="Alexnet",
-                        choices=["Alexnet", 
-                                "VGG11", "VGG13", "VGG16", "VGG19",
-                                "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152",],
-                        help='Which backbone to use for testing.')
-
-    # embedding dimention
-    parser.add_argument('--embedding_dim', default=256, type=int,
-                        help="Dimension of the embedding vector (default: 256)"
-                        )
-
-    # Image size
-    parser.add_argument('--image_size', default=224, type=int,
-                        help='Input image size (default: 224 (224x224), depend on the backbone.)'
-                        )
-
-    # Loss setting
-    parser.add_argument('--loss_name', type=str, default="triplet", 
-                    choices=["triplet",],
-                    help='used loss name')
-
-    # Other
-
-    # Resume pretrain
-    parser.add_argument('--resume_name', default='model_Alexnet_triplet_epoch_10.pt', type=str,
-                        help='file name of latest checkpoint, placed in experiment folder (default: none)')
-
-    # Global setting
-
-    # random seed
-    parser.add_argument('--seed', type=int, default=1,
-                        help='random seed (default: 1)')
-
-    # Do not use cuda? if no cuda on pc, then don't use
-    parser.add_argument('--no_cuda', action='store_true', default=False,
-                        help='enables CUDA training')
-
-    # log interval
-    parser.add_argument('--log_interval', type=int, default=100, 
-                        help='how many samples batch to wait before logging training status')
-
-    # expriment folder name
-    parser.add_argument('--name', default='TripletNet', type=str,
-                        help='name of experiment')
+    # config file name
+    parser.add_argument('--config_name', default='MNIST_Alexnet_triplet_train.yml', type=str,
+                        help='name of config file')
 
     args = parser.parse_args()
 
-    dataset = args.dataset
-    batch_size = args.batch_size
-    num_workers = args.num_workers
-    backbone = args.backbone
-    embedding_dim = args.embedding_dim
-    image_size = args.image_size
-    resume_name = args.resume_name
-    loss_name = args.loss_name
-    seed = args.seed
-    no_cuda = args.no_cuda
-    log_interval = args.log_interval
-    name = args.name
-
+    # get config file name.
+    config_name = args.config_name
 
     """
     Decide wether to use cuda, set random seed and init the logger & average meter,
     init experiment folder.
     """
+    # get config folder
+    curernt_file_path = os.path.dirname(os.path.abspath(__file__))
+    experiment_config_folder = os.path.join(curernt_file_path, "config")
+
+    # get cfg file
+    cfg = load_cfg(experiment_config_folder, config_name)
+
+    # 要从cfg里加载的东西
+    # general的设置
+    experiment_name = cfg["experiment_name"] 
+    resume_name = cfg["resume_name"]         
+    experiment_seed = cfg["experiment_seed"]
+    dont_use_cuda = cfg["dont_use_cuda"]
+    # log的设置
+    log_interval = cfg["log_interval"]
 
     # set cuda
-    cuda = not no_cuda and torch.cuda.is_available()
+    cuda = not dont_use_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
     # set seed 
-    torch.manual_seed(seed)
+    torch.manual_seed(experiment_seed)
     if cuda:
-        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed(experiment_seed)
 
     # Create experiment folder structure
     curernt_file_path = os.path.dirname(os.path.abspath(__file__))
-    experiment_folder = os.path.join(curernt_file_path, name)
+    experiment_folder = os.path.join(curernt_file_path, "all_experiment", experiment_name)
     experiment_snap_folder = os.path.join(experiment_folder, "snap")
     experiment_board_folder = os.path.join(experiment_folder, "board_validate")
     os.makedirs(experiment_folder, exist_ok=True)
@@ -225,21 +184,18 @@ if __name__ == "__main__":
 
     # get dataset 
     dataset_pre_processing = []
-    train_dataloader, test_dataloader = get_train_dataloader(dataset=dataset, 
-                                                            batch_size=batch_size, 
-                                                            output_size=image_size, 
-                                                            num_worker=num_workers, 
+    train_dataloader, test_dataloader = get_train_dataloader(cfg=cfg,
                                                             use_cuda=cuda, 
                                                             pre_process_transform=dataset_pre_processing)
 
     # load model
-    model, _ = load_model_test(backbone, False, embedding_dim, experiment_snap_folder, resume_name, cuda)
+    model, start_epoch = load_model_test(cfg, cuda)
 
     # get evaluation loss
-    loss = get_loss(loss_name=loss_name)
+    loss = get_loss(cfg)
 
     # start validte model
-    validation(0, log_interval, test_dataloader, model, loss, writer, device)
+    validation(start_epoch, log_interval, test_dataloader, model, loss, writer, device)
 
 
     

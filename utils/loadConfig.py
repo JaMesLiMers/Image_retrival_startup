@@ -8,14 +8,12 @@ import os
 import logging
 
 
-def load_cfg():
+def load_cfg(config_folder, config_file_name):
     """
     to load cfg properties.
     """
-    # 获取当前脚本所在文件夹路径
-    cur_path = os.path.dirname(os.path.realpath(__file__))
     # 获取yaml文件路径
-    yml_path = os.path.join(cur_path, "data.yml")
+    yml_path = os.path.join(config_folder, config_file_name)
     # open打开文件
     data_file = open(yml_path, 'r', encoding="UTF-8")
     # 读取文件
@@ -24,19 +22,3 @@ def load_cfg():
     # 用load方法转字典
     cfg = yaml.load(cfg_string, Loader=yaml.FullLoader)
     return cfg
-
-
-cfg = load_cfg()
-
-
-def init_logger():
-    """
-    logger cfg
-    """
-    logger_cfg = cfg.get("log")
-    if logger_cfg.get("enable"):
-        filename_cfg = os.path.join(os.path.dirname(os.path.realpath(__file__)), logger_cfg.get(
-            "file_name"))
-        logging.basicConfig(filename=filename_cfg,
-                            level=logger_cfg.get("level"))
-        logging.info("enable logger")

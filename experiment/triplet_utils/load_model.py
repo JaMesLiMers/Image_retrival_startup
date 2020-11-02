@@ -56,9 +56,8 @@ def set_model_gpu_mode_multi(model, cuda):
     return model, flag_train_multi_gpu
 
 
-def load_all_train(backbone, pretrained, embedding_dim, 
-                   loss_name, optimizer,
-                   experiment_snap_folder, resume_name, cuda):
+
+def load_all_train(cfg, cuda):
     """Load or initialize model, optimizer, loss, start_epoch for training.
 
     This function is aimed to get all model part for training, including:
@@ -74,25 +73,25 @@ def load_all_train(backbone, pretrained, embedding_dim,
     and 'flag_train_multi_gpu' will become True.
 
     Args:
-        backbone: 
-            Model backbone name, can be:
-                ["Alexnet", 
-                "VGG11", "VGG13", "VGG16", "VGG19",
-                "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152",]
-        pretrained: 
-            Wether use the ImageNet pretrained weight for model parameter init.
-        embedding_dim: 
-            The output feature's dimention.
-        loss_name: 
-            Loss name, current support:
-                ["triplet",]
-        optimizer: 
-            Optimizer name, current support:
-                ["sgd", "adagrad", "rmsprop", "adam"]
-        experiment_snap_folder: 
-            where to load model snap.
-        resume_name: 
-            resume snap '.pt' file name.
+        cfg: config file that used following part:
+
+            backbone_name: 
+                Model backbone name, can be:
+                    ["Alexnet", 
+                    "VGG11", "VGG13", "VGG16", "VGG19",
+                    "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152",]
+            pretrained: 
+                Wether use the ImageNet pretrained weight for model parameter init.
+            embedding_dim: 
+                The output feature's dimention.
+            loss_name: 
+                Loss name, current support:
+                    ["triplet",]
+            optimizer: 
+                Optimizer name, current support:
+                    ["sgd", "adagrad", "rmsprop", "adam"]
+            resume_name: 
+                resume snap '.pt' file name.
         cuda: 
             use cuda or not.
 
@@ -108,11 +107,12 @@ def load_all_train(backbone, pretrained, embedding_dim,
         flag_train_multi_gpu:
             Wether trained on multi gpu.
     """
+
+    resume_name = cfg["resume_name"]
+    experiment_snap_folder = os.path.join(cfg["experiment_name"], "snap")
     
     # Instantiate model
-    model = get_backbone(model_architecture=backbone, 
-                        pretrained=pretrained, 
-                        embedding_dimension=embedding_dim)
+    model = get_backbone(cfg=cfg)
 
     model = TripletNetModel(model)
 
@@ -120,11 +120,11 @@ def load_all_train(backbone, pretrained, embedding_dim,
     model, flag_train_multi_gpu = set_model_gpu_mode_multi(model, cuda)
 
     # Set optimizer
-    optimizer_model = get_optimizer(optimizer=optimizer,
+    optimizer_model = get_optimizer(cfg=cfg,
                                     model=model)
 
     # Set loss function
-    loss = get_loss(loss_name=loss_name)
+    loss = get_loss(cfg=cfg)
 
     # Resume from a model checkpoint
     start_epoch = 0
@@ -148,12 +148,11 @@ def load_all_train(backbone, pretrained, embedding_dim,
     else:
         logger.warning("\nWARNING: No checkpoint found at {}!\nTraining from scratch.\n".format(resume_path))
 
-    return model, optimizer, loss, start_epoch, flag_train_multi_gpu
+    return model, optimizer_model, loss, start_epoch, flag_train_multi_gpu
 
 
 
-def load_model_test(backbone, pretrained, embedding_dim, 
-                    experiment_snap_folder, resume_name, cuda):
+def load_model_test(cfg, cuda):
     """Initialize and load model snap for testing.
 
     This function is aimed to get the model part for testing on single GPU;
@@ -167,19 +166,18 @@ def load_model_test(backbone, pretrained, embedding_dim,
     consideration.
 
     Args:
-        backbone: 
-            Model backbone name, can be:
-                ["Alexnet", 
-                "VGG11", "VGG13", "VGG16", "VGG19",
-                "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152",]
-        pretrained: 
-            Wether use the ImageNet pretrained weight for model parameter init.
-        embedding_dim: 
-            The output feature's dimention.
-        experiment_snap_folder: 
-            where to load model snap.
-        resume_name: 
-            resume snap '.pt' file name.
+        cfg: config file that used following part:
+            backbone: 
+                Model backbone name, can be:
+                    ["Alexnet", 
+                    "VGG11", "VGG13", "VGG16", "VGG19",
+                    "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152",]
+            pretrained: 
+                Wether use the ImageNet pretrained weight for model parameter init.
+            embedding_dim: 
+                The output feature's dimention.
+            resume_name: 
+                resume snap '.pt' file name.
         cuda: 
             use cuda or not.
     Return:
@@ -188,10 +186,11 @@ def load_model_test(backbone, pretrained, embedding_dim,
         start_epoch:
             Resumed last epoch of the model, is not resume then is 0;
     """
+    resume_name = cfg["resume_name"]
+    experiment_snap_folder = os.path.join(cfg["experiment_name"], "snap")
+    
     # Instantiate model
-    model = get_backbone(model_architecture=backbone, 
-                        pretrained=pretrained, 
-                        embedding_dimension=embedding_dim)
+    model = get_backbone(cfg=cfg)
 
     model = TripletNetModel(model)
 
