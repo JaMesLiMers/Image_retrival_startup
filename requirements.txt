@@ -5,5 +5,4 @@ torchvision
 tensorboard
 matplotlib
 omegaconf
-hydra-core
 tqdm
