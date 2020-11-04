@@ -146,9 +146,6 @@ triplet:
 # 实验名称, 示例里是命名格式
 experiment_name: "dataset_backbone_loss_train"
 
-# 训练的epoch数
-train_epochs: 10
-
 # 是否resume, resume的.pt文件名称 (名字的前缀和实验名相同)
 resume_name: "dataset_backbone_loss_train_epoch_n.pt"
 
