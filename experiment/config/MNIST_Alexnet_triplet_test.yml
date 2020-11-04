@@ -4,9 +4,6 @@
 # 实验名称, 示例里是命名格式
 experiment_name: "MNIST_Alexnet_triplet_train"
 
-# 训练的epoch数
-train_epochs: 10
-
 # 是否resume, resume的.pt文件名称 (名字的前缀和实验名相同)
 resume_name: "MNIST_Alexnet_triplet_train_epoch_10.pt"
 

@@ -5,7 +5,7 @@
 experiment_name: "MNIST_Alexnet_triplet_train"
 
 # 训练的epoch数
-train_epochs: 10
+train_epochs: 50
 
 # 是否resume, resume的.pt文件名称 (名字的前缀和实验名相同)
 resume_name: ""
