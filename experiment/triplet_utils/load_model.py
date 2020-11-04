@@ -109,7 +109,7 @@ def load_all_train(cfg, cuda):
     """
 
     resume_name = cfg["resume_name"]
-    experiment_snap_folder = os.path.join(cfg["experiment_name"], "snap")
+    experiment_snap_folder = os.path.join("experiment", "all_experiment", cfg["experiment_name"], "snap")
     
     # Instantiate model
     model = get_backbone(cfg=cfg)
@@ -187,7 +187,7 @@ def load_model_test(cfg, cuda):
             Resumed last epoch of the model, is not resume then is 0;
     """
     resume_name = cfg["resume_name"]
-    experiment_snap_folder = os.path.join(cfg["experiment_name"], "snap")
+    experiment_snap_folder = os.path.join("experiment", "all_experiment", cfg["experiment_name"], "snap")
     
     # Instantiate model
     model = get_backbone(cfg=cfg)
