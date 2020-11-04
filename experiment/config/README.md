@@ -31,9 +31,6 @@ val_interval: 1
 # ------------------------ log Setting ------------------------
 # 关于log的设置
 
-# 使用的logger的名称, 默认是global, 没有特殊需要不需要改.
-logger_name: "global"
-
 # 每隔多少batch显示一次进度.
 log_interval: 100
 
@@ -139,4 +136,63 @@ triplet:
 
 
 # ------------------------ End Setting ------------------------
+```
+
+- 测试文件格式:
+```
+# ------------------------ General Test Setting -------------------------
+# 这里包括了general的设置
+
+# 实验名称, 示例里是命名格式
+experiment_name: "dataset_backbone_loss_train"
+
+# 训练的epoch数
+train_epochs: 10
+
+# 是否resume, resume的.pt文件名称 (名字的前缀和实验名相同)
+resume_name: "dataset_backbone_loss_train_epoch_n.pt"
+
+# 训练的种子
+experiment_seed: 1
+
+# 是否不需要使用cuda
+dont_use_cuda: False
+
+# ------------------------ log Setting ------------------------
+# 关于log的设置
+
+# 每隔多少batch显示一次进度.
+log_interval: 100
+
+# ------------------------ Dataloader Setting ------------------------
+# 这里包括了Dataloader的设置, 使用哪一个数据集.
+
+# 使用哪一个数据集, 现在支持的有: ["MNIST_triplet", "MNIST"]
+dataset_name: "MNIST"
+
+# 设置数据集的batch_size
+batch_size: 64
+
+# 设置数据集的平行读取
+num_workers: 1
+
+# 设置数据集产出的图像的大小
+image_size: 224
+
+# ------------------------ Backbone Setting ------------------------
+# 这里包括了backbone网络的选取设置.
+
+# 使用哪一个backbone, 现在支持的有: ["Alexnet", 
+#        "VGG11", "VGG13", "VGG16", "VGG19",
+#        "Resnet18", "Resnet34", "Resnet50", "Resnet101", "Resnet152", ]
+backbone_name: "Alexnet"
+
+# backbone最后输出的特征长度.
+embedding_dim: 256
+
+# 是否使用pretrain的模型, torch在ImageNet上的pretrain.
+pretrained: False
+
+# ------------------------ End Setting ------------------------
+
 ```
