@@ -112,7 +112,7 @@ def validation(epoch, log_interval, test_dataloader, model, loss, writer, device
         avg_test.update(time=batch_time, triplet_loss=loss_value, pos_dists=pos_dists, neg_dists=neg_dists)
         if current_test_batch % log_interval == 0:            
             print_speed(current_test_batch, batch_time, total_test_batch, "global")
-            logger.info("\n current global average information:\n batch_time {0:5f} | triplet_loss: {1:.5f} | pos_dists: {2:.5f} | neg_dists: {3:.5f} \n".format(avg_test.time.avg, avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg))
+            logger.info("\n current global average information:\n batch_time {0:.5f} | triplet_loss: {1:.5f} | pos_dists: {2:.5f} | neg_dists: {3:.5f} \n".format(avg_test.time.avg, avg_test.triplet_loss.avg, avg_test.pos_dists.avg, avg_test.neg_dists.avg))
     else:
         writer.add_scalar("Validate/Loss/train", avg_test.triplet_loss.avg, global_step=epoch)
         writer.add_scalar("Validate/Other/pos_dists", avg_test.pos_dists.avg, global_step=epoch)
