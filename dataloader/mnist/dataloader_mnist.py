@@ -46,6 +46,7 @@ class MNIST(VisionDataset):
         __len__: 获取整个数据集的长度
 
         get_instance: 获取一个数据样本的基本方法, 分别包括随机, 指定index, 指定cls三种
+        get_raw_image: 根据指定的index, 获取一个未处理的图, 在test中会被用到.
 
     """
 
@@ -126,6 +127,9 @@ class MNIST(VisionDataset):
                     "img": target image,
                     "cls": target class, 
                     "other": other information,
+                        {
+                            "index" : index,
+                        }
                 }
         """
         return self.get_instance(index=index)
@@ -149,6 +153,9 @@ class MNIST(VisionDataset):
                     "img": target image,
                     "cls": target class, 
                     "other": other information,
+                        {
+                            "index" : index,
+                        }
                 }
         """
         rdic = {}
@@ -172,11 +179,40 @@ class MNIST(VisionDataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
+        other["index"] = index
+
         rdic["img"] = img
         rdic["cls"] = target
         rdic["other"] = other
 
         return rdic
+
+    def get_raw_image(self, index=None):
+        """
+            Get one instance from dataset, acccording to the specification index
+
+            The default performance of function is return a random PIL.Image, 
+            If the index is specified, then return index Image
+
+            Args:
+                index (int): Index num
+
+            Returns:
+                A PIL.Image.
+        """
+        if index is not None:
+            index = index
+        else:
+            index = random.randint(0, len(self))
+
+        img = self.data[index]
+
+        # to return a PIL Image
+        img = Image.fromarray(img.numpy(), mode='L')
+        transform = transforms.Grayscale(3)
+        # convert to 3 channel
+        img = transform(img)
+        return img
 
 
     def __len__(self):
@@ -217,8 +253,7 @@ if __name__ == "__main__":
         print(type(transformed_dataset.get_instance()["img"]))
 
     # warp with dataloader
-    dataloader = DataLoader(transformed_dataset, batch_size=4,
-                        shuffle=True, num_workers=0)
+    dataloader = DataLoader(transformed_dataset, batch_size=4, num_workers=0)
 
     # iterate all batch
     for i_batch, sample_batched in enumerate(dataloader):
