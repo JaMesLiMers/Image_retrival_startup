@@ -376,6 +376,37 @@ def visualization_one_retrieval(query_sample, all_sample_list, test_dataloader, 
 
     return grid_display(image_list, title_list, top_n + 1, (35, 3))
 
+def visualization_n_retrieval(all_sample_list, test_dataloader, visualize_num, top_n=10):
+    """Visualize n sample's result for retrieval dataset
+
+    Args:
+        all_sample_list:(list of dict)
+            the database for search
+        test_dataloader:(dataloader)
+            A non-triplet dataloader to validate data.
+            It's sample protocal is:
+                {
+                    "img": target image,
+                    "cls": target class, 
+                    "other": other information,
+                        {
+                            "index" : index,
+                        }
+                }
+        visualize_num: (int)
+            The visulization sample number n.
+        top_n:(int)
+            return the top_n ranked sample if specified.
+
+    Return:
+        Return a list of figure image that can directly used for writer.add_image function.
+    
+    """
+    query_image = random.sample(all_sample_list, visualize_num)
+    figs = []
+    for i in range(visualize_num):
+        figs.append(visualization_one_retrieval(query_image[i], output_sample_list, test_dataloader, top_n=top_n))
+    return figs
 
 
 if __name__ == "__main__":
@@ -469,8 +500,6 @@ if __name__ == "__main__":
     mAP_100 = evaluate_all_map(output_sample_list, sample_number=1, N=100, random_seed=experiment_seed)
 
     # plot a random sample on board
-    visualize_num = 10
-    query_image = random.sample(output_sample_list, visualize_num)
-    for i in range(visualize_num):
-        fig = visualization_one_retrieval(query_image[i], output_sample_list, test_dataloader, top_n=10)
-        writer.add_image("Test/random_retrieval", fig, i)
+    figs = visualization_n_retrieval(output_sample_list, test_dataloader, visualize_num=10, top_n=10)
+    for i in range(len(figs)):
+        writer.add_image("Test/random_retrieval", figs[i], i)
