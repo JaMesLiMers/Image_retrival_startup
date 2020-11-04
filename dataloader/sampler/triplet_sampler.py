@@ -77,7 +77,12 @@ class TripletSampler(Dataset):
                 "anchor_cls": Tensor,
                 "pos_cls": Tensor,
                 "neg_cls": Tensor,
-                "other": {"some thing else..."}
+                "other": "some thing else..."
+                        {
+                            "anchor_index": anchor index,
+                            "neg_index": negative index,
+                            "pos_index": positive index,
+                        }
             }
         """
         return self.get_triplet_tuple(index=index)
@@ -106,7 +111,12 @@ class TripletSampler(Dataset):
                 "anchor_cls": Tensor,
                 "pos_cls": Tensor,
                 "neg_cls": Tensor,
-                "other": {"some thing else..."}
+                "other": "some thing else..."
+                        {
+                            "anchor_index": anchor index,
+                            "neg_index": negative index,
+                            "pos_index": positive index,
+                        }
             }
         """
         other = {}
@@ -122,6 +132,10 @@ class TripletSampler(Dataset):
 
         pos_sample = self.inner_dataset.get_instance(cls=pos_cls)
         neg_sample = self.inner_dataset.get_instance(cls=neg_cls)
+
+        other["anchor_index"] = anchor_sample["other"]["index"]
+        other["neg_index"] = neg_sample["other"]["index"]
+        other["pos_index"] = pos_sample["other"]["index"]
 
         return {
             "anchor_img": anchor_sample["img"],
