@@ -8,7 +8,7 @@ In this folder, we Implemented the Dataloader of the dataset.
 The dataloader of each dataset is placed in their folder corresponding by their name.
 
 The wrapper folder holds the different kinds of dataloader to get data, Current have:
-- Triplet DataSampler.
+- Triplet DataSampler. (for train only)
 
 ## Specification
 The dataloader class of each dataset used pytorch's `torchvision.datasets.vision.VisionDataset` as parent class, which provided the default transformer check *(We use torch's default transformer and PIL to load IMG and process them)*. 
@@ -23,7 +23,9 @@ But don't worry! The `VisionDataset` works exactly the same as `torch.utils.data
             {
                 "img" : Torch tensor,
                 "cls" : Scalar,
-                "other": {}
+                "other": {
+                            "index" : index,
+                        }
             }
     ```
 - Triplet sampler dataset:
@@ -38,5 +40,10 @@ But don't worry! The `VisionDataset` works exactly the same as `torch.utils.data
                 "pos_cls": Tensor,
                 "neg_cls": Tensor,
                 "other": {"some thing else..."}
+                        {
+                            "anchor_index": anchor index,
+                            "neg_index": negative index,
+                            "pos_index": positive index,
+                        }
             }
     ```
