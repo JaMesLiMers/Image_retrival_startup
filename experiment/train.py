@@ -286,8 +286,8 @@ if __name__ == "__main__":
 
 
     # TODO:
-    # 1. 增加模型表现的tensorboard展示
-    # 2. 增加validation部分
+    # 1. 增加模型表现的tensorboard展示 ✅
+    # 2. 增加validation部分 ✅
     # 3. 写readme.
 
 
