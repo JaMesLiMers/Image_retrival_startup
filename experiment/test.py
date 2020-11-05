@@ -497,7 +497,7 @@ if __name__ == "__main__":
     """
 
     # sample and calculate mAP@100
-    mAP_100 = evaluate_all_map(output_sample_list, sample_number=1, N=100, random_seed=experiment_seed)
+    mAP_100 = evaluate_all_map(output_sample_list, sample_number=50, N=100, random_seed=experiment_seed)
 
     # plot a random sample on board
     figs = visualization_n_retrieval(output_sample_list, test_dataloader, visualize_num=10, top_n=10)
