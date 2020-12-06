@@ -22,7 +22,7 @@ log_interval: 100
 # ------------------------ Dataloader Setting ------------------------
 # 这里包括了Dataloader的设置, 使用哪一个数据集.
 
-# 使用哪一个数据集, 现在支持的有: ["MNIST_triplet", "MNIST"]
+# 使用哪一个数据集, 现在支持的有: ["MNIST_triplet", "MNIST", "Fashion_MNIST_triplet", "Fashion_MNIST"]
 dataset_name: "MNIST"
 
 # 设置数据集的batch_size
