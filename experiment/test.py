@@ -1,6 +1,7 @@
 from logging import log
 import os
 from random import sample
+from sys import meta_path
 import time
 import random
 import torch
@@ -409,6 +410,61 @@ def visualization_n_retrieval(all_sample_list, test_dataloader, visualize_num, t
         figs.append(visualization_one_retrieval(query_image[i], output_sample_list, test_dataloader, top_n=top_n))
     return figs
 
+def generate_embedding(all_sample_list, test_dataloader, visualize_num=1000, random_seed=1):
+    """Generate embedding projector data to summary. 
+
+    Args:
+        all_sample_list:(list of dict)
+            the database for search
+        test_dataloader:(dataloader)
+            A non-triplet dataloader to validate data.
+            It's sample protocal is:
+                {
+                    "cls": class label of the sample,
+                    "feature": feature vectuer of the result,
+                    "other": other information,
+                    {
+                        "index": index of the sample in the dataset,
+                    }
+                },
+    Return:
+        Generate embedding projector arguments.
+
+        mat: (torch.Tensor or numpy.array) 
+            A matrix which each row is the feature vector of the data point
+        metadata: (list) 
+            A list of labels, each element will be convert to string
+        label_img: (torch.Tensor)
+            Images correspond to each data point
+    """
+    # init all variable
+    mat = []
+    metadata = []
+    label_img = []
+    test_dataset = test_dataloader.dataset
+
+    # set seed
+    random.seed(random_seed)
+    # random select datapoint
+    part_sample_list = random.sample(all_sample_list, visualize_num)
+
+    # extract target value
+    for sample in part_sample_list:
+        img_cls = int(sample["cls"])
+        img_feature = sample["feature"]
+        index = sample["other"]["index"]
+        img_content = test_dataset[index]["img"]
+
+        mat.append(img_feature)
+        metadata.append(img_cls)
+        label_img.append(img_content)
+
+    # convert back to normal tensor
+    mat_tensor = torch.stack(mat, dim=0)
+    label_img_tensor = torch.stack(label_img, dim=0)
+
+    return mat_tensor, metadata, label_img_tensor
+            
 
 if __name__ == "__main__":
     """
@@ -419,7 +475,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Validate triplet network')
 
     # config file name
-    parser.add_argument('--config_name', default='MNIST_Alexnet_triplet_test.yml', type=str,
+    # parser.add_argument('--config_name', default='MNIST_Alexnet_triplet_test.yml', type=str,
+                        # help='name of config file')
+    parser.add_argument('--config_name', default='Fashion_MNIST_Alexnet_triplet_test.yml', type=str,
                         help='name of config file')
 
     args = parser.parse_args()
@@ -497,11 +555,20 @@ if __name__ == "__main__":
     },
     """
 
+    # TODO: 是否要加入到cfg里面?
+    # generate enbedding projection
+    logger.info("\n------------------------- Calculating projection -------------------------\n")
+    mat_tensor, metadata, label_img_tensor = generate_embedding(output_sample_list, test_dataloader, 500, random_seed=experiment_seed)
+    writer.add_embedding(mat_tensor, metadata, label_img_tensor)
+
     # sample and calculate mAP@100
+    logger.info("\n------------------------- Calculating mAP@100 -------------------------\n")
     mAP_100 = evaluate_all_map(output_sample_list, sample_number=50, N=100, random_seed=experiment_seed)
     logger.info("MAP@100: {}".format(mAP_100))
+    writer.add_scalar("MAP@100", mAP_100)
 
     # plot a random sample on board
-    figs = visualization_n_retrieval(output_sample_list, test_dataloader, visualize_num=10, top_n=10)
+    logger.info("\n------------------------- Visualizing n retrieval -------------------------\n")
+    figs = visualization_n_retrieval(output_sample_list, test_dataloader, visualize_num=50, top_n=10)
     for i in range(len(figs)):
         writer.add_image("Test/random_retrieval", figs[i], i)

@@ -37,7 +37,7 @@ python ./experiment/train.py
 ```
 You can also specifiy the training config file in command line
 ```
-python ./experiment/train.py --config_file ...
+python ./experiment/train.py --config_name ...
 ```
 
 - After training you can test your model:
@@ -47,5 +47,5 @@ python ./experiment/test.py
 ```
 OR
 ```
-python ./experiment/test.py --config_file ...
+python ./experiment/test.py --config_name ...
 ```
