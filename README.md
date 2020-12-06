@@ -26,11 +26,26 @@ source ./set_path.sh
 - To prepare the dataset please follow the instruction in `./dataset` folder.
 - current support datasets are:
 1. MNIST
-2. ... (comming soon!)
+2. Fashion_MNIST
+3. ... (comming soon!)
 
 # Model training
 - how to train your model:
 To train your model, just use:
 ```
 python ./experiment/train.py
+```
+You can also specifiy the training config file in command line
+```
+python ./experiment/train.py --config_file ...
+```
+
+- After training you can test your model:
+To test your model, just use:
+```
+python ./experiment/test.py 
+```
+OR
+```
+python ./experiment/test.py --config_file ...
 ```
