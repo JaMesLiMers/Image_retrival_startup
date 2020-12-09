@@ -564,13 +564,13 @@ if __name__ == "__main__":
         logger.info("\n------------------------- Calculating mAP@10 -------------------------\n")
         mAP_10 = evaluate_all_map(output_sample_list, sample_number=50, N=10, random_seed=experiment_seed)
         logger.info("MAP@10: {}".format(mAP_10))
-        writer.add_scalar("MAP@10", mAP_10, start_epoch, walltime=start_epoch)
+        writer.add_scalar("MAP@10", mAP_10, start_epoch)
 
         # sample and calculate mAP@100
         logger.info("\n------------------------- Calculating mAP@100 -------------------------\n")
         mAP_100 = evaluate_all_map(output_sample_list, sample_number=50, N=100, random_seed=experiment_seed)
         logger.info("MAP@100: {}".format(mAP_100))
-        writer.add_scalar("MAP@100", mAP_100, start_epoch, walltime=start_epoch)
+        writer.add_scalar("MAP@100", mAP_100, start_epoch)
 
         # add one epoch to all list
         output_sample_lists.append(output_sample_list)
