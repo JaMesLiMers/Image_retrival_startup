@@ -125,7 +125,7 @@ loss_name: "triplet"
 
 # 对triplet loss的设置:
 triplet:
-   margin: 1.0
+   margin: 0.5
 
    norm_digree: 2
 

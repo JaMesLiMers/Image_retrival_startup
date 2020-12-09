@@ -28,7 +28,7 @@ from experiment.triplet_utils.get_optimizer import get_optimizer
 from experiment.triplet_utils.get_dataloader import get_train_dataloader
 
 # load model (more eazy way to get model.)
-from experiment.triplet_utils.load_model import load_model_test
+from experiment.triplet_utils.load_model import load_model_test, load_model_test_yeild
 
 # plt
 import matplotlib.pyplot as plt
@@ -538,35 +538,67 @@ if __name__ == "__main__":
                                                             pre_process_transform=dataset_pre_processing)
 
     # load model
-    model, start_epoch = load_model_test(cfg, cuda)
+    # models, start_epochs = load_model_test(cfg, cuda)
 
-    # start validte model
-    output_sample_list = test_model(model, test_dataloader, log_interval, device)
-    """
-    {
-        "cls": class label of the sample,
-        "feature": feature vectuer of the result,
-        "other": other information,
+    # result
+    output_sample_lists = []
+    mAP_100s = []
+    mAP_10s = []
+
+
+    # Test all models, and store the result in the lists
+    for model, start_epoch in load_model_test_yeild(cfg, cuda):
+        # start validte model
+        output_sample_list = test_model(model, test_dataloader, log_interval, device)
+        """
         {
-            "index": index of the sample in the dataset,
-        }
-    },
-    """
+            "cls": class label of the sample,
+            "feature": feature vectuer of the result,
+            "other": other information,
+            {
+                "index": index of the sample in the dataset,
+            }
+        },
+        """
+        # sample and calculate mAP@10
+        logger.info("\n------------------------- Calculating mAP@10 -------------------------\n")
+        mAP_10 = evaluate_all_map(output_sample_list, sample_number=50, N=10, random_seed=experiment_seed)
+        logger.info("MAP@10: {}".format(mAP_10))
+        writer.add_scalar("MAP@10", mAP_10, start_epoch, walltime=start_epoch)
+
+        # sample and calculate mAP@100
+        logger.info("\n------------------------- Calculating mAP@100 -------------------------\n")
+        mAP_100 = evaluate_all_map(output_sample_list, sample_number=50, N=100, random_seed=experiment_seed)
+        logger.info("MAP@100: {}".format(mAP_100))
+        writer.add_scalar("MAP@100", mAP_100, start_epoch, walltime=start_epoch)
+
+        # add one epoch to all list
+        output_sample_lists.append(output_sample_list)
+        mAP_100s.append(mAP_100)
+        mAP_10s.append(mAP_10)
+
+    # get best result
+    best_epoch_idx = mAP_100s.index(max(mAP_100s))
+    best_epoch_mAp_10 = mAP_10s[best_epoch_idx]
+    best_epoch_mAp_100 = mAP_100s[best_epoch_idx]
+    best_output_sample_list = output_sample_lists[best_epoch_idx]
 
     # TODO: 是否要加入到cfg里面?
     # generate enbedding projection
     logger.info("\n------------------------- Calculating projection -------------------------\n")
-    mat_tensor, metadata, label_img_tensor = generate_embedding(output_sample_list, test_dataloader, 500, random_seed=experiment_seed)
+    mat_tensor, metadata, label_img_tensor = generate_embedding(best_output_sample_list, test_dataloader, 500, random_seed=experiment_seed)
     writer.add_embedding(mat_tensor, metadata, label_img_tensor)
-
-    # sample and calculate mAP@100
-    logger.info("\n------------------------- Calculating mAP@100 -------------------------\n")
-    mAP_100 = evaluate_all_map(output_sample_list, sample_number=50, N=100, random_seed=experiment_seed)
-    logger.info("MAP@100: {}".format(mAP_100))
-    writer.add_scalar("MAP@100", mAP_100)
 
     # plot a random sample on board
     logger.info("\n------------------------- Visualizing n retrieval -------------------------\n")
-    figs = visualization_n_retrieval(output_sample_list, test_dataloader, visualize_num=50, top_n=10)
+    figs = visualization_n_retrieval(best_output_sample_list, test_dataloader, visualize_num=50, top_n=10)
     for i in range(len(figs)):
-        writer.add_image("Test/random_retrieval", figs[i], i)
+        writer.add_image("Test/random_retrieval_best_epoch_{}".format(best_epoch_idx), figs[i], i)
+
+
+    # log best result and epoch
+    logger.info("\n------------------------- Visualizing n retrieval -------------------------\n")
+    logger.info("best epoch: {}".format(best_epoch_idx))
+    logger.info("best epoch mAP@10: {}".format(best_epoch_mAp_10))
+    logger.info("best epoch mAP@100: {}".format(best_epoch_mAp_100))
+

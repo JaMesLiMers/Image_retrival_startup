@@ -11,6 +11,7 @@ experiment_name: "dataset_backbone_loss_train"
 train_epochs: 10
 
 # 是否resume, resume的.pt文件名称 (名字的前缀和实验名相同)
+# 若留空, 则测试所有的模型
 resume_name: "dataset_backbone_loss_train_epoch_n.pt"
 
 # 训练的种子
