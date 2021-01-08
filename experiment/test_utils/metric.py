@@ -40,7 +40,8 @@ def AP_N(label_result: list, N):
     for i in true_idx:
         result += P_N(label_result, i +1)
         
-    result = result / len(true_idx)
+    if len(true_idx) != 0:
+        result = result / len(true_idx)
     return result
     
 
