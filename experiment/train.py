@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train triplet network')
 
     # config file name
-    parser.add_argument('--config_name', default='MNIST_Alexnet_triplet_train.yml', type=str,
+    parser.add_argument('--config_name', default='MNIST/MNIST_Alexnet_triplet_train.yml', type=str,
                         help='name of config file')
 
     args = parser.parse_args()
