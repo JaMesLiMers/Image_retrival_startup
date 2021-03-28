@@ -184,6 +184,7 @@ def evaluate_one(query_sample, all_sample_list, top_n=None):
 
     """
     query_cls = query_sample["cls"]
+    query_idx = query_sample["other"]["index"]
     query_vec = query_sample["feature"]
         
     rank_result = []
@@ -194,6 +195,8 @@ def evaluate_one(query_sample, all_sample_list, top_n=None):
         sample_vec = sample["feature"]
         sample_idx = sample["other"]["index"]
         sample_distance = F.pairwise_distance(query_vec.unsqueeze(0), sample_vec.unsqueeze(0)).to("cpu")
+        if int(sample_idx) == int(query_idx):
+            continue
         sample_label = int(query_cls == sample_cls)
 
         # pack all
@@ -475,7 +478,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Validate triplet network')
 
     # config file name
-    parser.add_argument('--config_name', default='MNIST/MNIST_Alexnet_triplet_test.yml', type=str,
+    parser.add_argument('--config_name', default='Arch_Dataset/Arch_Dataset_Resnet18_triplet_test.yml', type=str,
                         help='name of config file')
 
     args = parser.parse_args()
@@ -498,7 +501,7 @@ if __name__ == "__main__":
     # 要从cfg里加载的东西
     # general的设置
     experiment_name = cfg["experiment_name"] 
-    resume_name = cfg["resume_name"]         
+    resume_name = cfg["resume_name"]
     experiment_seed = cfg["experiment_seed"]
     dont_use_cuda = cfg["dont_use_cuda"]
     # log的设置
@@ -542,6 +545,7 @@ if __name__ == "__main__":
 
     # result
     output_sample_lists = []
+    mAP_500s = []
     mAP_100s = []
     mAP_10s = []
 
@@ -549,7 +553,7 @@ if __name__ == "__main__":
     # Test all models, and store the result in the lists
     for model, start_epoch in load_model_test_yeild(cfg, cuda):
         # start validte model
-        output_sample_list = test_model(model, test_dataloader, log_interval, device)
+        output_sample_list = test_model(model, train_dataloader, log_interval, device)
         """
         {
             "cls": class label of the sample,
@@ -572,26 +576,34 @@ if __name__ == "__main__":
         logger.info("MAP@100: {}".format(mAP_100))
         writer.add_scalar("MAP@100", mAP_100, start_epoch)
 
+        # sample and calculate mAP@500
+        logger.info("\n------------------------- Calculating mAP@500 -------------------------\n")
+        mAP_500 = evaluate_all_map(output_sample_list, sample_number=50, N=500, random_seed=experiment_seed)
+        logger.info("MAP@500: {}".format(mAP_500))
+        writer.add_scalar("MAP@500", mAP_500, start_epoch)
+
         # add one epoch to all list
         output_sample_lists.append(output_sample_list)
+        mAP_500s.append(mAP_500)
         mAP_100s.append(mAP_100)
         mAP_10s.append(mAP_10)
 
     # get best result
-    best_epoch_idx = mAP_100s.index(max(mAP_100s))
+    best_epoch_idx = mAP_500s.index(max(mAP_500s))
     best_epoch_mAp_10 = mAP_10s[best_epoch_idx]
     best_epoch_mAp_100 = mAP_100s[best_epoch_idx]
+    best_epoch_mAp_500 = mAP_500s[best_epoch_idx]
     best_output_sample_list = output_sample_lists[best_epoch_idx]
 
     # TODO: 是否要加入到cfg里面?
     # generate enbedding projection
     logger.info("\n------------------------- Calculating projection -------------------------\n")
-    mat_tensor, metadata, label_img_tensor = generate_embedding(best_output_sample_list, test_dataloader, 500, random_seed=experiment_seed)
+    mat_tensor, metadata, label_img_tensor = generate_embedding(best_output_sample_list, train_dataloader, 500, random_seed=experiment_seed)
     writer.add_embedding(mat_tensor, metadata, label_img_tensor)
 
     # plot a random sample on board
     logger.info("\n------------------------- Visualizing n retrieval -------------------------\n")
-    figs = visualization_n_retrieval(best_output_sample_list, test_dataloader, visualize_num=50, top_n=10)
+    figs = visualization_n_retrieval(best_output_sample_list, train_dataloader, visualize_num=100, top_n=10)
     for i in range(len(figs)):
         writer.add_image("Test/random_retrieval_best_epoch_{}".format(best_epoch_idx), figs[i], i)
 
@@ -601,4 +613,5 @@ if __name__ == "__main__":
     logger.info("best epoch: {}".format(best_epoch_idx))
     logger.info("best epoch mAP@10: {}".format(best_epoch_mAp_10))
     logger.info("best epoch mAP@100: {}".format(best_epoch_mAp_100))
+    logger.info("best epoch mAP@500: {}".format(best_epoch_mAp_500))
 

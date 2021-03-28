@@ -2,6 +2,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from dataloader.mnist.dataloader_mnist import MNIST
 from dataloader.fashion_mnist.dataloader_fashion_mnist import Fashion_MNIST
+from dataloader.arch_dataset.dataloader_arch_dataset import ArchDatset
 from dataloader.sampler.triplet_sampler import TripletSampler
 
 from utils.log_helper import init_log
@@ -13,7 +14,7 @@ def get_train_dataloader(cfg: dict, use_cuda, pre_process_transform=[]):
 
     select the dataset according to the config's, current support:
 
-    ["MNIST_triplet", "MNIST", "Fashion_MNIST_triplet", "Fashion_MNIST"]
+    ["MNIST_triplet", "MNIST", "Fashion_MNIST_triplet", "Fashion_MNIST", "Arch_Dataset_triplet", "Arch_Dataset"]
 
     If the dataset dont have test version, just return None for test_loader.
 
@@ -111,6 +112,43 @@ def get_train_dataloader(cfg: dict, use_cuda, pre_process_transform=[]):
         ])
         train_dataset = Fashion_MNIST(transform=transform)
         test_dataset = Fashion_MNIST(train=False, transform=transform)
+
+        if use_cuda:
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+        else:
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers)
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers)
+
+    elif dataset_name == "Arch_Dataset_triplet":
+        transform=transforms.Compose(pre_process_transform + 
+        [
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ])
+        train_dataset = ArchDatset(transform=transform)
+        test_dataset = ArchDatset(train=False, transform=transform)
+
+        train_triplet_dataset = TripletSampler(train_dataset)
+        test_triplet_dataset = TripletSampler(test_dataset)
+
+        if use_cuda:
+            train_loader = DataLoader(train_triplet_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+            test_loader = DataLoader(test_triplet_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
+        else:
+            train_loader = DataLoader(train_triplet_dataset, batch_size=batch_size, num_workers=num_workers)
+            test_loader = DataLoader(test_triplet_dataset, batch_size=batch_size, num_workers=num_workers)
+
+    elif dataset_name == "Arch_Dataset":
+        transform=transforms.Compose(pre_process_transform + 
+        [
+                transforms.Resize(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+        ])
+        train_dataset = ArchDatset(transform=transform)
+        test_dataset = ArchDatset(train=False, transform=transform)
 
         if use_cuda:
             train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True)
